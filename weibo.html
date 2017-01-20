@@ -1,0 +1,245 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        *{
+          margin:0;
+          padding:0;
+        }
+        li{
+          list-style:none;
+        }
+        
+        img{
+          width:20px;
+          vertical-align:middle;
+        }
+        #wrap{
+          width:580px;
+          height:580px;
+          margin:0 auto;
+          padding:10px;
+        }
+        #wrap .textArea{
+          width:518px;
+          height:158px;
+          border:1px solid #ccc;
+          padding:20px;
+          margin-bottom:20px;
+        }
+        #wrap div textarea{
+          width:518px;
+          height:98px;
+        }
+        #wrap div input{
+          float:right;
+          width:80px;
+          height:40px;
+          margin:15px 0;
+          border:1px solid #ccc;
+          background:green;
+        }
+        #wrap .list{
+          width:558px;
+          
+          display:-none;
+          border:1px solid #ccc;
+          list-style:none;
+        }
+       #wrap .message .title{
+        line-height:20px;
+       }
+       #wrap .message .handle{
+        float:right;
+       }
+       #wrap .message user{
+        line-height:20px;
+       
+       }
+    </style>
+     
+    <script>
+    /*实现的功能有：
+      1、用户输入内容后，点击提交按钮，把用户输入的内容发给后端，并且要把用户输入的内容显示在页面中
+      2、点击赞，需要让赞按钮后的数字加个1
+      3、点击踩，需要让踩按钮后的数字加个1
+      4、点击删除，需要把这条数据删除掉
+      5、实现翻页功能*/
+
+      //分析：
+      window.onload=function(){
+        var textarea=document.querySelector('textarea');
+        var input=document.querySelector('input');
+        var message=document.querySelector('.message');
+        var pn=1
+        //提交数据
+        input.onclick=function(){
+          var val=textarea.value;
+          if(!val){
+            alert('请评论一下！');
+            return;
+          }
+          ajax({
+                url:'php/weibo.php',
+                data:{
+                    act:'add',
+                    content:encodeURI(val)
+                },
+                succ:function(data){
+                   // console.log(data);
+                   //提交成功时调用getData
+                   getData();
+                },
+          }); 
+          textarea.value='';
+        } 
+        //获取数据
+        getData();
+        function getData(){
+          ajax({
+                url:'php/weibo.php',
+                data:{
+                    'act':'get',
+                    'page':pn
+                },
+                succ:function(data){
+                    //console.log(data);
+                    createDom(data);
+                },
+          }); 
+        }
+        //创建结构(根据后台数据创建结构)
+        function createDom(data){
+          var str='';
+          for(var i=0;i<data.list.length;i++){
+            str+=`<li>
+            <div class="title">${data.list[i].content}</div>
+            <div class="user">
+              <span>704393214</span>
+              
+              <div class="handle" data-id="${data.list[i].id}">
+                <img src="images/1.png"><span>${data.list[i].acc}</span>
+                <img src="images/2.png"><span>${data.list[i].ref}</span>
+                <img src="images/3.png"><span>删除</span>
+              </div>
+            </div>
+          </li>`
+          }
+          message.innerHTML=str;
+          handleFn();
+          page(data.totalNum);
+        }
+        //翻页 1.总数据totalNum,2一页有多少条数据
+        function page(total){
+          var pageWrap=document.querySelector('.page');
+          pageWrap.innerHTML='';
+          if(total>6){
+            var rn=Math.ceil(total/6);//要显示的页码数
+            
+            for(var i=0;i<rn;i++){
+              var span=document.createElement('span');
+              span.innerHTML=i+1;
+              if(i+1==pn){
+                span.className='active';
+              }
+              span.onclick=function(){
+                pn=this.innerHTML;
+                getData()
+              }
+              pageWrap.appendChild(span);
+            }
+          }
+        }
+        //操作功能
+        function handleFn(){
+          var handles=message.querySelectorAll('.handle');
+
+          for(var i=0;i<handles.length;i++){
+            var imgs=handles[i].querySelectorAll('img');
+            //赞 id怎么传
+            imgs[0].onclick=function(){
+              //h5取id
+              var id=this.parentNode.dataset.id;
+              //var id=this.parentNode.getAttribute('data-id');//dom操作
+              ajax({
+                url:'php/weibo.php',
+                data:{
+                    'act':'acc',
+                    'id':id
+                },
+                succ:function(data){
+                  //获取数据
+                  getData();
+                },
+              }); 
+            }
+            //踩 id怎么传
+            imgs[1].onclick=function(){
+              //h5取id
+              var id=this.parentNode.dataset.id;
+              //var id=this.parentNode.getAttribute('data-id');//dom操作
+              ajax({
+                url:'php/weibo.php',
+                data:{
+                    'act':'ref',
+                    'id':id
+                },
+                succ:function(data){
+                  //获取数据
+                  getData();
+                },
+              }); 
+            }
+            //删除 id怎么传
+            imgs[2].onclick=function(){
+              //h5取id
+              var id=this.parentNode.dataset.id;
+              //var id=this.parentNode.getAttribute('data-id');//dom操作
+              ajax({
+                url:'php/weibo.php',
+                data:{
+                    'act':'del',
+                    'id':id
+                },
+                succ:function(data){
+                  //获取数据
+                  getData();
+                },
+              }); 
+            }
+          }
+        }    
+      }
+    </script>
+    
+</head>
+<body>
+  <div id="wrap">
+        <div class="textArea">
+            <textarea></textarea>
+            <input type="button" value="提交评论">
+        </div>
+        <div class="list">
+        <ul class="message">
+          <!--<li>
+            <div class="title">这里是一个标题</div>
+            <div class="user">
+              <span>704393214</span>
+              <div class="handle">
+                <img src="images/1.png"><span>0</span>
+                <img src="images/2.png"><span>0</span>
+                <img src="images/3.png"><span>删除</span>
+              </div>
+            </div>
+          </li>-->
+        </ul>
+        </div>
+        <div class="page"><!--<span>1</span><span>2</span><span>3</span>--></div>
+  </div>
+  <script src="js/json2.js"></script>
+  <script src="js/ajax.js"></script> 
+</body>
+</html>
